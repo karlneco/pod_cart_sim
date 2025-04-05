@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Cart Simulation</title>
+    <style>
+        table { border-collapse: collapse; margin-bottom: 20px; }
+        th, td { border: 1px solid #ccc; padding: 8px; }
+        th { background: #eee; }
+
+        .discount-verb {
+            display: inline-block;
+            background-color: #eef;
+            border: 1px solid #88a;
+            border-radius: 12px;
+            padding: 4px 10px;
+            margin: 4px 4px 10px 0;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .discount-verb:hover {
+            background-color: #dde;
+        }
+    </style>
+    <script>
+        let activeTextarea = null;
+
+        // Track which textarea is focused
+        document.addEventListener('DOMContentLoaded', function () {
+            document.querySelectorAll("textarea").forEach(el => {
+                el.addEventListener("focus", () => {
+                    activeTextarea = el;
+                });
+            });
+        });
+
+        function insertAtCursor(text) {
+            if (!activeTextarea) return;
+
+            const start = activeTextarea.selectionStart;
+            const end = activeTextarea.selectionEnd;
+            const value = activeTextarea.value;
+            const insertText = text + ": ";
+
+            activeTextarea.value = value.substring(0, start) + insertText + value.substring(end);
+            activeTextarea.selectionStart = activeTextarea.selectionEnd = start + insertText.length;
+            activeTextarea.focus();
+        }
+    </script>
+    </head>`
+<body>
+    <h1>Cart Simulator</h1>
+
+    <form method="POST">
+        <table>
+            <thead>
+                <tr>
+                    <th>Product</th>
+                    <th>Type</th>
+                    <th>Price</th>
+                    <th>Store Shipping</th>
+                    <th>Quantity</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for key, item in products.items() %}
+                <tr>
+                    <td>{{ item.name }}</td>
+                    <td>{{ item.type }}</td>
+                    <td>${{ "%.2f"|format(item.price) }}</td>
+                    <td>${{ "%.2f"|format(item.store_shipping) }}</td>
+                    <td><input type="number" name="qty_{{ key }}" min="0"
+                               value="{{ cart[key] if key in cart else 0 }}" style="width: 60px;"></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <div>
+            <strong>Click a discount verb:</strong><br>
+                <span class="discount-verb" onclick="insertAtCursor('whole_order:x')">whole_order</span>
+                <span class="discount-verb" onclick="insertAtCursor('type_discount:type=10')">type_discount</span>
+                <span class="discount-verb" onclick="insertAtCursor('min_total:total=percent')">min_total</span>
+                <span class="discount-verb" onclick="insertAtCursor('free_shipping:total')">free_shipping</span>
+                <span class="discount-verb" onclick="insertAtCursor('bogo:product_type,buy_qty,free_qty')">bogo</span>
+                <span class="discount-verb" onclick="insertAtCursor('buy_x_get_1off:buy_qty,percent_off')">buy_x_get_1off</span>
+                <span class="discount-verb" onclick="insertAtCursor('type_tier_discount: T-Shirt, 3=3, 5=5')">type_tier_discount</span>
+                <span class="discount-verb" onclick="insertAtCursor('buy_type_get_type_discount: hoodie, tee, 15')">buy_type_get_type_discount</span>
+        </div>
+
+
+        <div style="display: flex; gap: 40px;">
+        <div style="flex: 1;">
+            <label>Discount Command(s) A:</label><br>
+            <textarea id="discount_text_a" name="discount_text_a" rows="4" cols="40">{{ discount_text_a }}</textarea>
+            <button type="button" onclick="document.getElementById('discount_text_a').value = '';">Clear</button>
+
+        </div>
+
+        <div style="flex: 1;">
+            <label>Discount Command(s) B:</label><br>
+            <textarea id="discount_text_b" name="discount_text_b" rows="4" cols="40">{{ discount_text_b }}</textarea>
+            <button type="button" onclick="document.getElementById('discount_text_b').value = '';">Clear</button>
+
+        </div>
+    </div>
+
+<br>
+<button type="submit">Simulate Cart(s)</button>
+    </form>
+
+{% if result_a and result_b %}
+<h2>Simulation Comparison</h2>
+<table border="1" cellpadding="6" style="border-collapse: collapse; width: 100%;">
+    <thead>
+        <tr>
+            <th>Metric</th>
+            <th>Discount A</th>
+            <th>Discount B</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr><td><strong>Original Price</strong></td>
+            <td>${{ "%.2f"|format(result_a.original_price) }} USD</td>
+            <td>${{ "%.2f"|format(result_b.original_price) }} USD</td></tr>
+
+        <tr><td><strong>Discount Applied</strong></td>
+            <td>${{ "%.2f"|format(result_a.discount_total) }} USD</td>
+            <td>${{ "%.2f"|format(result_b.discount_total) }} USD</td></tr>
+
+        <tr><td><strong>Order Total (with discounts)</strong></td>
+            <td>${{ "%.2f"|format(result_a.order_total) }} USD ({{ "%.2f"|format(result_a.order_total * result_a.exchange_rate) }} CAD)</td>
+            <td>${{ "%.2f"|format(result_b.order_total) }} USD ({{ "%.2f"|format(result_b.order_total * result_b.exchange_rate) }} CAD)</td></tr>
+
+        <tr><td><strong>Store Shipping Charged</strong></td>
+            <td>${{ "%.2f"|format(result_a.store_shipping_total) }} USD</td>
+            <td>${{ "%.2f"|format(result_b.store_shipping_total) }} USD</td></tr>
+
+        <tr><td><strong>Store Shipping Discount</strong></td>
+            <td>${{ "%.2f"|format(result_a.store_shipping_discount) }} USD</td>
+            <td>${{ "%.2f"|format(result_b.store_shipping_discount) }} USD</td></tr>
+
+        <tr style="background: aquamarine"><td><strong>Customer Pays</strong></td>
+            <td>${{ "%.2f"|format(result_a.customer_total) }} USD ({{ "%.2f"|format(result_a.order_value_cad) }} CAD)</td>
+            <td>${{ "%.2f"|format(result_b.customer_total) }} USD ({{ "%.2f"|format(result_b.order_value_cad) }} CAD)</td></tr>
+
+        <tr><td><strong>COGS</strong></td>
+            <td>${{ "%.2f"|format(result_a.total_cogs) }} USD ({{ "%.2f"|format(result_a.total_cogs * result_a.exchange_rate) }} CAD)</td>
+            <td>${{ "%.2f"|format(result_b.total_cogs) }} USD ({{ "%.2f"|format(result_b.total_cogs * result_b.exchange_rate) }} CAD)</td></tr>
+
+        <tr><td><strong>Real Shipping Cost</strong></td>
+            <td>${{ "%.2f"|format(result_a.real_shipping_total) }} USD ({{ "%.2f"|format(result_a.real_shipping_total * result_a.exchange_rate) }} CAD)</td>
+            <td>${{ "%.2f"|format(result_b.real_shipping_total) }} USD ({{ "%.2f"|format(result_b.real_shipping_total * result_b.exchange_rate) }} CAD)</td></tr>
+
+        <tr><td><strong>COGS Tax (7%)</strong></td>
+            <td>${{ "%.2f"|format(result_a.cogs_tax) }} USD ({{ "%.2f"|format(result_a.cogs_tax * result_a.exchange_rate) }} CAD)</td>
+            <td>${{ "%.2f"|format(result_b.cogs_tax) }} USD ({{ "%.2f"|format(result_b.cogs_tax * result_b.exchange_rate) }} CAD)</td></tr>
+
+        <tr><td><strong>Store Fees</strong></td>
+            <td>{{ "%.2f"|format(result_a.store_fee_cad) }} CAD</td>
+            <td>{{ "%.2f"|format(result_b.store_fee_cad) }} CAD</td></tr>
+
+        <tr><td><strong>COGS Total (and %) </strong></td>
+            <td>{{ "%.2f"|format(result_a.real_shipping_total + result_a.cogs_tax + result_a.store_fee_cad) }} USD (@ {{ "%.2f"|format((result_a.real_shipping_total + result_a.cogs_tax + result_a.store_fee_cad)/result_a.customer_total*100) }}%)</td>
+            <td>{{ "%.2f"|format(result_b.real_shipping_total + result_b.cogs_tax + result_b.store_fee_cad) }} USD (@ {{ "%.2f"|format((result_b.real_shipping_total + result_b.cogs_tax + result_b.store_fee_cad)/result_b.customer_total*100) }}%)</td>
+
+        <tr><td><strong>Store Payout</strong></td>
+        <td>{{ "%.2f"|format(result_a.store_payout_cad) }} CAD</td>
+        <td>{{ "%.2f"|format(result_b.store_payout_cad) }} CAD</td></tr>
+
+        <tr><td><strong>COGS Total</strong></td>
+        <td>{{ "%.2f"|format(result_a.cogs_total_cad) }} CAD</td>
+        <td>{{ "%.2f"|format(result_b.cogs_total_cad) }} CAD</td></tr>
+
+
+        <tr style="border: 4px solid chartreuse;"><td><strong>Profit/Loss in CAD (margin)</strong></td>
+            <td><strong>{{ "%.2f"|format(result_a.profit_cad) }} ({{ "%.2f"|format(result_a.profit_cad/result_a.store_payout_cad*100) }}%)</strong> CAD</td>
+            <td><strong>{{ "%.2f"|format(result_b.profit_cad) }} ({{ "%.2f"|format(result_b.profit_cad/result_b.store_payout_cad*100) }}%)</strong> CAD</td>
+    </tbody>
+</table>
+{% endif %}
+</body>
+</html>

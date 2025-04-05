@@ -1,0 +1,42 @@
+{
+  "T-Shirt Style 1": {
+    "name": "Normal T-Shirt",
+    "type": "g64k",
+    "price": 29.99,
+    "cogs": 8.73,
+    "real_shipping_first": 4.75,
+    "real_shipping_additional": 2.40,
+    "store_shipping": 5.64,
+    "use_real_shipping": true
+  },
+  "T-Shirt Style 2": {
+    "name": "Normal T-Shirt",
+    "type": "cheap",
+    "price": 19.99,
+    "cogs": 8.73,
+    "real_shipping_first": 4.75,
+    "real_shipping_additional": 2.40,
+    "store_shipping": 5.64,
+    "use_real_shipping": true
+  },
+  "Hoodie Style 1": {
+    "name": "Softstyle Hoodie",
+    "type": "sf500",
+    "price": 56.99,
+    "cogs": 23.38,
+    "real_shipping_first": 8.75,
+    "real_shipping_additional": 3.00,
+    "store_shipping": 9.75,
+    "use_real_shipping": true
+  },
+  "Zipper Hoodie": {
+    "name": "Zipper Hoodie",
+    "type": "Hoodie",
+    "price": 89.99,
+    "cogs": 35.00,
+    "real_shipping_first": 8.00,
+    "real_shipping_additional": 3.50,
+    "store_shipping": 6.99,
+    "use_real_shipping": true
+  }
+}
