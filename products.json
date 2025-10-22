@@ -5,19 +5,10 @@
     "price": 29.99,
     "cogs": 8.73,
     "real_shipping_first": 4.75,
-    "real_shipping_additional": 2.40,
+    "real_shipping_additional": 2.4,
     "store_shipping": 5.64,
-    "use_real_shipping": true
-  },
-  "T-Shirt Style 2": {
-    "name": "Normal T-Shirt",
-    "type": "cheap",
-    "price": 19.99,
-    "cogs": 8.73,
-    "real_shipping_first": 4.75,
-    "real_shipping_additional": 2.40,
-    "store_shipping": 5.64,
-    "use_real_shipping": true
+    "use_real_shipping": true,
+    "kind": "tee"
   },
   "Hoodie Style 1": {
     "name": "Softstyle Hoodie",
@@ -25,18 +16,97 @@
     "price": 56.99,
     "cogs": 23.38,
     "real_shipping_first": 8.75,
-    "real_shipping_additional": 3.00,
+    "real_shipping_additional": 3.0,
     "store_shipping": 9.75,
-    "use_real_shipping": true
+    "use_real_shipping": true,
+    "kind": "hoodie"
   },
   "Zipper Hoodie": {
     "name": "Zipper Hoodie",
     "type": "Hoodie",
     "price": 89.99,
-    "cogs": 35.00,
-    "real_shipping_first": 8.00,
-    "real_shipping_additional": 3.50,
+    "cogs": 35.0,
+    "real_shipping_first": 8.0,
+    "real_shipping_additional": 3.5,
     "store_shipping": 6.99,
-    "use_real_shipping": true
+    "use_real_shipping": true,
+    "kind": "aop hoodie"
+  },
+  "Long Sleeve Tee (B+C-3501)": {
+    "name": "Long Sleeve Tee (B+C-3501)",
+    "type": "bc3501",
+    "price": 32.99,
+    "cogs": 14.33,
+    "real_shipping_first": 4.75,
+    "real_shipping_additional": 2.8,
+    "store_shipping": 5.75,
+    "use_real_shipping": true,
+    "kind": "bc3501"
+  },
+  "2x2 Kiss Cut Sticker": {
+    "name": "2x2 Kiss Cut Sticker",
+    "type": "2x2",
+    "price": 2.99,
+    "cogs": 1.07,
+    "real_shipping_first": 4.59,
+    "real_shipping_additional": 0.09,
+    "store_shipping": 4.99,
+    "use_real_shipping": true,
+    "kind": "sticker"
+  },
+  "3x3 Kiss Cut Sticker": {
+    "name": "3x3 Kiss Cut Sticker",
+    "type": "3x3",
+    "price": 3.99,
+    "cogs": 1.18,
+    "real_shipping_first": 4.59,
+    "real_shipping_additional": 0.09,
+    "store_shipping": 4.99,
+    "use_real_shipping": true,
+    "kind": "sticker"
+  },
+  "4x4 Kiss Cut Sticker": {
+    "name": "4x4 Kiss Cut Sticker",
+    "type": "4x4",
+    "price": 4.99,
+    "cogs": 1.48,
+    "real_shipping_first": 4.59,
+    "real_shipping_additional": 0.09,
+    "store_shipping": 4.99,
+    "use_real_shipping": true,
+    "kind": "sticker"
+  },
+  "6x6 Kiss Cut Sticker": {
+    "name": "6x6 Kiss Cut Sticker",
+    "type": "6x6",
+    "price": 5.99,
+    "cogs": 1.71,
+    "real_shipping_first": 4.59,
+    "real_shipping_additional": 0.09,
+    "store_shipping": 4.99,
+    "use_real_shipping": true,
+    "kind": "sticker"
+  },
+  "4x6 Vinyl Decals": {
+    "name": "4x6 Vinyl Decals",
+    "type": "4x6",
+    "price": 3.59,
+    "cogs": 1.55,
+    "real_shipping_first": 4.69,
+    "real_shipping_additional": 0.09,
+    "store_shipping": 4.99,
+    "use_real_shipping": true,
+    "kind": "vsticker"
+  },
+  "8x10 Vinyl Decals": {
+    "name": "8x10 Vinyl Decals",
+    "type": "8x10",
+    "price": 8.99,
+    "cogs": 5.46,
+    "real_shipping_first": 4.69,
+    "real_shipping_additional": 0.09,
+    "store_shipping": 4.99,
+    "use_real_shipping": true,
+    "kind": "vsticker"
   }
 }

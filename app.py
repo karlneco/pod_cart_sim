@@ -1,8 +1,14 @@
-from flask import Flask, render_template, request
+import json
 from data import load_products
 from models import simulate_cart, parse_discount_grammar
+from flask import Flask, render_template, request, redirect, flash
+from pathlib import Path
+
+PRODUCT_FILE = Path("products.json")
+
 
 app = Flask(__name__)
+app.secret_key = "super-secret-key-change-this"
 
 @app.route("/", methods=["GET", "POST"])
 def index():
@@ -31,3 +37,23 @@ def index():
 
     return render_template("index.html", products=products, result_a=result_a, result_b=result_b,
                            cart=cart, discount_text_a=discount_text_a, discount_text_b=discount_text_b)
+
+
+@app.route("/edit-products", methods=["GET", "POST"])
+def edit_products():
+    if request.method == "POST":
+        new_json = request.form.get("json_data", "").strip()
+        try:
+            # Validate it
+            parsed = json.loads(new_json)
+            with open(PRODUCT_FILE, "w") as f:
+                json.dump(parsed, f, indent=2)
+            flash("Product data saved!", "success")
+        except Exception as e:
+            flash(f"Error: {e}", "error")
+            return render_template("edit_products.html", json_data=new_json)
+        return redirect("/")
+
+    with open(PRODUCT_FILE) as f:
+        json_data = f.read()
+    return render_template("edit_products.html", json_data=json_data)

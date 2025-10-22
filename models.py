@@ -88,6 +88,11 @@ def apply_discounts(cart, products, discount_rules):
             eligible = min(from_count, len(to_items))
             to_items.sort()  # Discount cheapest first
             discount_total += sum(to_items[:eligible]) * (percent / 100)
+        elif rule_type == "cart_quantity_discount":
+            total_qty = sum(cart.values())
+            if total_qty >= rule["min_qty"]:
+                subtotal = sum(products[k]["price"] * q for k, q in cart.items())
+                discount_total += subtotal * (rule["percent"] / 100)
     return discount_total
 
 def parse_discount_grammar(command_text):
@@ -195,6 +200,17 @@ def parse_discount_grammar(command_text):
                     "type": "buy_type_get_type_discount",
                     "from_type": from_type.strip(),
                     "to_type": to_type.strip(),
+                    "percent": float(percent.strip())
+                })
+            except ValueError:
+                continue
+        elif line.startswith("cart_quantity_discount:"):
+            try:
+                _, rest = line.split(":", 1)
+                qty, percent = rest.split(",")
+                discount_rules.append({
+                    "type": "cart_quantity_discount",
+                    "min_qty": int(qty.strip()),
                     "percent": float(percent.strip())
                 })
             except ValueError:
