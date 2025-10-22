@@ -78,14 +78,14 @@
         <div>
             <strong>Click a discount verb:</strong><br>
                 <span class="discount-verb" onclick="insertAtCursor('whole_order:x')">whole_order</span>
-                <span class="discount-verb" onclick="insertAtCursor('type_discount:type=10')">type_discount</span>
+                <span class="discount-verb" onclick="insertAtCursor('type_discount:type,10')">type_discount</span>
                 <span class="discount-verb" onclick="insertAtCursor('min_total:total=percent')">min_total</span>
                 <span class="discount-verb" onclick="insertAtCursor('free_shipping:total')">free_shipping</span>
                 <span class="discount-verb" onclick="insertAtCursor('bogo:product_type,buy_qty,free_qty')">bogo</span>
-                <span class="discount-verb" onclick="insertAtCursor('buy_x_get_1off:buy_qty,percent_off')">buy_x_get_1off</span>
+                <span class="discount-verb" onclick="insertAtCursor('buy_x_get_1off:3,50')">buy_x_get_1off</span>
                 <span class="discount-verb" onclick="insertAtCursor('type_tier_discount: T-Shirt, 3=3, 5=5')">type_tier_discount</span>
                 <span class="discount-verb" onclick="insertAtCursor('buy_type_get_type_discount: hoodie, tee, 15')">buy_type_get_type_discount</span>
-                <span class="discount-verb" onclick="insertAtCursor('cart_quantity_discount: #, ##%')">cart_quantity_discount</span>
+                <span class="discount-verb" onclick="insertAtCursor('cart_quantity_discount: 5,10')">cart_quantity_discount</span>
         </div>
 
 
@@ -124,20 +124,37 @@
             <td>${{ "%.2f"|format(result_a.original_price) }} USD</td>
             <td>${{ "%.2f"|format(result_b.original_price) }} USD</td></tr>
 
-        <tr><td><strong>Discount Applied</strong></td>
-            <td>{% if result_a.store_shipping_discount>0 %}
-                    ${{ "%.2f"|format(result_a.discount_total + result_a.store_shipping_discount) }} USD (with shipping)
-                {% else %}
-                    ${{ "%.2f"|format(result_a.discount_total) }} USD
-                {% endif %}
-                </td>
-
-            <td>{% if result_b.store_shipping_discount>0 %}
-                    ${{ "%.2f"|format(result_b.discount_total + result_b.store_shipping_discount) }} USD (with shipping)
-                {% else %}
-                    ${{ "%.2f"|format(result_b.discount_total) }} USD
-                {% endif %}
-                </td>
+        <tr>
+          <td><strong>Merch Discount Applied</strong></td>
+          <td>${{ "%.2f"|format(result_a.discount_total) }} USD</td>
+          <td>${{ "%.2f"|format(result_b.discount_total) }} USD</td>
+        </tr>
+        <tr>
+          <td><strong>Shipping Discount</strong></td>
+          <td>${{ "%.2f"|format(result_a.store_shipping_discount) }} USD</td>
+          <td>${{ "%.2f"|format(result_b.store_shipping_discount) }} USD</td>
+        </tr>
+        <tr>
+          <td><strong>Total Discount (incl. shipping)</strong></td>
+          <td>${{ "%.2f"|format(result_a.total_discount_incl_shipping) }} USD</td>
+          <td>${{ "%.2f"|format(result_b.total_discount_incl_shipping) }} USD</td>
+        </tr>
+        <tr>
+          <td><strong>Discount Breakdown</strong></td>
+          <td>
+            <ul style="margin:6px 0 0 18px;">
+              {% for d in result_a.discount_breakdown %}
+              <li>{{ d.label }}: ${{ "%.2f"|format(d.amount) }} USD</li>
+              {% endfor %}
+            </ul>
+          </td>
+          <td>
+            <ul style="margin:6px 0 0 18px;">
+              {% for d in result_b.discount_breakdown %}
+              <li>{{ d.label }}: ${{ "%.2f"|format(d.amount) }} USD</li>
+              {% endfor %}
+            </ul>
+          </td>
 
         <tr><td><strong>Order Total (with discounts)</strong></td>
             <td>${{ "%.2f"|format(result_a.order_total) }} USD ({{ "%.2f"|format(result_a.order_total * result_a.exchange_rate) }} CAD)</td>
