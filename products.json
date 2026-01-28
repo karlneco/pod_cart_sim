@@ -10,24 +10,35 @@
     "use_real_shipping": true,
     "kind": "tee"
   },
-  "Hoodie Style 1": {
+  "Softstyle Hoodie": {
     "name": "Softstyle Hoodie",
     "type": "sf500",
-    "price": 56.99,
-    "cogs": 23.38,
-    "real_shipping_first": 8.75,
-    "real_shipping_additional": 3.0,
+    "price": 58.99,
+    "cogs": 18.06,
+    "real_shipping_first": 8.49,
+    "real_shipping_additional": 2.09,
+    "store_shipping": 9.75,
+    "use_real_shipping": true,
+    "kind": "hoodie"
+  },
+  "Midblend Hoodie": {
+    "name": "Softstyle Hoodie",
+    "type": "g18500",
+    "price": 52.99,
+    "cogs": 16.38,
+    "real_shipping_first": 8.49,
+    "real_shipping_additional": 2.09,
     "store_shipping": 9.75,
     "use_real_shipping": true,
     "kind": "hoodie"
   },
   "Zipper Hoodie": {
     "name": "Zipper Hoodie",
-    "type": "Hoodie",
-    "price": 89.99,
-    "cogs": 35.0,
-    "real_shipping_first": 8.0,
-    "real_shipping_additional": 3.5,
+    "type": "g18600",
+    "price": 62.99,
+    "cogs": 21.39,
+    "real_shipping_first": 8.49,
+    "real_shipping_additional": 2.09,
     "store_shipping": 6.99,
     "use_real_shipping": true,
     "kind": "aop hoodie"
