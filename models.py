@@ -107,7 +107,7 @@ def simulate_cart(cart, products, discount_rules=[]):
         if getattr(mod, "CATEGORY", "price") != "shipping":
             continue
         if rule["verb"] == "free_shipping":
-            if order_total >= float(rule["min_total"]):
+            if original_price >= float(rule["min_total"]):
                 store_shipping_discount = store_shipping
                 break
 
