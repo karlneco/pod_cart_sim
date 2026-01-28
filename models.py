@@ -131,7 +131,8 @@ def simulate_cart(cart, products, discount_rules=[]):
     all_tax = (total_cogs + cogs_shipping_total) * COGS_TAX_RATE
     profit = total_price - total_cogs - cogs_shipping_total - all_tax
     cogs_total_cad = (total_cogs + cogs_shipping_total + all_tax) * EXCHANGE_RATE
-    profit_cad = store_payout - cogs_total_cad
+    total_expenses_cad = cogs_total_cad + store_fee
+    profit_cad = order_value_cad - total_expenses_cad
 
     return {
         "original_price": original_price,
@@ -144,6 +145,7 @@ def simulate_cart(cart, products, discount_rules=[]):
         "store_fee_cad": store_fee,
         "store_payout_cad": store_payout,
         "cogs_total_cad": cogs_total_cad,
+        "total_expenses_cad": total_expenses_cad,
         "profit": profit,
         "discount_total": discount_total,
         "discount_breakdown": discount_breakdown,                 # NEW

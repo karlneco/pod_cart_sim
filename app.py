@@ -3,6 +3,12 @@ from data import load_products
 from models import simulate_cart, parse_discount_grammar
 from flask import Flask, render_template, request, redirect, flash
 from pathlib import Path
+from dotenv import load_dotenv, find_dotenv
+
+# Load .env if present; skip quietly when missing (e.g., clean checkouts).
+dotenv_path = find_dotenv(filename=".env", usecwd=True)
+if dotenv_path:
+    load_dotenv(dotenv_path)
 
 PRODUCT_FILE = Path("products.json")
 
