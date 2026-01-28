@@ -16,17 +16,41 @@ PRODUCT_FILE = Path("products.json")
 app = Flask(__name__)
 app.secret_key = "super-secret-key-change-this"
 
+
+def _parse_price(value):
+    if value is None:
+        return None
+    cleaned = value.strip().replace("$", "").replace(",", "")
+    if cleaned == "":
+        return None
+    try:
+        return float(cleaned)
+    except ValueError:
+        return None
+
+
 @app.route("/", methods=["GET", "POST"])
 def index():
     products = load_products()
+    updated_products = {key: dict(item) for key, item in products.items()}
     result_a = None
     result_b = None
     cart = {}
     discount_text_a = "free_shipping:75"
     discount_text_b = "free_shipping:75"
 
-
     if request.method == "POST":
+        for key in products:
+            raw_price = request.form.get(f"price_{key}")
+            parsed_price = _parse_price(raw_price)
+            if parsed_price is not None:
+                updated_products[key]["price"] = parsed_price
+
+        if request.form.get("action") == "save_prices":
+            with open(PRODUCT_FILE, "w") as f:
+                json.dump(updated_products, f, indent=2)
+            flash("Prices saved to products.json.", "success")
+
         for key in products:
             qty = int(request.form.get(f"qty_{key}", 0))
             if qty > 0:
@@ -38,10 +62,10 @@ def index():
         discount_rules_a = parse_discount_grammar(discount_text_a)
         discount_rules_b = parse_discount_grammar(discount_text_b)
 
-        result_a = simulate_cart(cart, products, discount_rules_a)
-        result_b = simulate_cart(cart, products, discount_rules_b)
+        result_a = simulate_cart(cart, updated_products, discount_rules_a)
+        result_b = simulate_cart(cart, updated_products, discount_rules_b)
 
-    return render_template("index.html", products=products, result_a=result_a, result_b=result_b,
+    return render_template("index.html", products=updated_products, result_a=result_a, result_b=result_b,
                            cart=cart, discount_text_a=discount_text_a, discount_text_b=discount_text_b)
 
 

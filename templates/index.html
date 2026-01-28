@@ -117,7 +117,8 @@
                     </div>
                     <div class="actions">
                         <a class="btn secondary" href="/edit-products">Edit Product Data</a>
-                        <button class="btn" type="submit">Simulate Cart(s)</button>
+                        <button class="btn secondary" type="submit" name="action" value="save_prices">Save Prices</button>
+                        <button class="btn" type="submit" name="action" value="simulate">Simulate Cart(s)</button>
                     </div>
                 </div>
             </section>
@@ -144,7 +145,11 @@
                                 <tr class="product-row" data-type="{{ item.type }}" onclick="replaceTypePlaceholder('{{ item.type }}')">
                                     <td>{{ item.name }}</td>
                                     <td>{{ item.type }}</td>
-                                    <td>${{ "%.2f"|format(item.price) }}</td>
+                                    <td>
+                                        <input class="price-input" type="text" name="price_{{ key }}"
+                                               value="{{ "%.2f"|format(item.price) }}" inputmode="decimal"
+                                               onclick="event.stopPropagation()" />
+                                    </td>
                                     <td>${{ "%.2f"|format(item.store_shipping) }}</td>
                                     <td><input class="qty-input" type="number" name="qty_{{ key }}" min="0"
                                                value="{{ cart[key] if key in cart else 0 }}" onclick="event.stopPropagation()" /></td>
