@@ -13,4 +13,7 @@ def apply(cart, products, rule) -> float:
     # Shipping effects are handled in core simulate_cart (returns price discount = 0)
     return 0.0
 
+def apply_shipping(cart, products, rule, original_price, store_shipping) -> float:
+    return store_shipping if original_price >= float(rule["min_total"]) else 0.0
+
 register(globals())

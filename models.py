@@ -67,17 +67,61 @@ def apply_discounts(cart, products, discount_rules):
     return discount_total, breakdown
 
 
+def apply_shipping_discounts(cart, products, discount_rules, original_price, store_shipping):
+    """
+    Run SHIPPING-category verbs and return total USD shipping discount.
+    Shipping rules can implement apply_shipping(...) or fall back to
+    specialized handling for known verbs.
+    """
+    shipping_discount = 0.0
+    breakdown: List[Dict[str, Any]] = []
+
+    for rule in discount_rules:
+        verb = rule.get("verb")
+        mod = REGISTRY.get(verb)
+        if not mod:
+            continue
+        if getattr(mod, "CATEGORY", "price") != "shipping":
+            continue
+
+        if hasattr(mod, "apply_shipping"):
+            amount = mod.apply_shipping(cart, products, rule, original_price, store_shipping)
+            amount = float(amount or 0.0)
+            if amount:
+                label_default = getattr(mod, "LABEL", verb.replace("_", " "))
+                breakdown.append({"verb": verb, "label": label_default, "amount": amount})
+                shipping_discount = max(shipping_discount, amount)
+            continue
+
+        if verb == "free_shipping":
+            if original_price >= float(rule["min_total"]):
+                label_default = getattr(mod, "LABEL", verb.replace("_", " "))
+                breakdown.append({"verb": verb, "label": label_default, "amount": store_shipping})
+                shipping_discount = store_shipping
+                break
+
+    return shipping_discount, breakdown
+
+
 def simulate_cart(cart, products, discount_rules=[]):
     total_price = 0.0
     total_cogs = 0.0
     store_shipping = 0.0
     cogs_shipping_total = 0.0
+    cogs_breakdown: List[Dict[str, Any]] = []
 
     # Merchandise + COGS + real shipping accumulation
     for key, qty in cart.items():
         product = products[key]
         total_price += product["price"] * qty
         total_cogs   += product["cogs"] * qty
+        cogs_breakdown.append({
+            "name": product["name"],
+            "type": product["type"],
+            "qty": qty,
+            "unit_cogs": product["cogs"],
+            "total_cogs": product["cogs"] * qty,
+        })
 
         per_product_real_ship = 0.0
         if qty >= 1:
@@ -99,17 +143,9 @@ def simulate_cart(cart, products, discount_rules=[]):
     order_total = total_price  # merchandise after price discounts
 
     # Handle shipping verbs (e.g., free_shipping)
-    store_shipping_discount = 0.0
-    for rule in discount_rules:
-        mod = REGISTRY.get(rule.get("verb"))
-        if not mod:
-            continue
-        if getattr(mod, "CATEGORY", "price") != "shipping":
-            continue
-        if rule["verb"] == "free_shipping":
-            if original_price >= float(rule["min_total"]):
-                store_shipping_discount = store_shipping
-                break
+    store_shipping_discount, shipping_discount_breakdown = apply_shipping_discounts(
+        cart, products, discount_rules, original_price, store_shipping
+    )
 
     total_price += (store_shipping - store_shipping_discount)
 
@@ -141,6 +177,7 @@ def simulate_cart(cart, products, discount_rules=[]):
         "total_cogs": total_cogs,
         "real_shipping_total": cogs_shipping_total,
         "cogs_tax": all_tax,
+        "cogs_breakdown": cogs_breakdown,
         "order_value_cad": order_value_cad,
         "store_fee_cad": store_fee,
         "store_payout_cad": store_payout,
@@ -150,6 +187,7 @@ def simulate_cart(cart, products, discount_rules=[]):
         "discount_total": discount_total,
         "discount_breakdown": discount_breakdown,                 # NEW
         "total_discount_incl_shipping": discount_total + store_shipping_discount,  # NEW
+        "shipping_discount_breakdown": shipping_discount_breakdown,
         "profit_cad": profit_cad,
         "exchange_rate": EXCHANGE_RATE,
         "store_shipping_total": store_shipping,

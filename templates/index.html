@@ -62,6 +62,7 @@
                 bogo: [0],
                 type_tier_discount: [0],
                 buy_type_get_type_discount: [0, 1],
+                free_shipping_type_qty: [0],
             };
             const typeIndexes = typeArgMap[verb];
             if (!typeIndexes) return;
@@ -162,6 +163,7 @@
                         <span class="discount-verb" onclick="insertAtCursor('type_discount:prod_type_1,10')">type_discount</span>
                         <span class="discount-verb" onclick="insertAtCursor('min_total:total=percent')">min_total</span>
                         <span class="discount-verb" onclick="insertAtCursor('free_shipping:total')">free_shipping</span>
+                        <span class="discount-verb" onclick="insertAtCursor('free_shipping_type_qty: prod_type_1, 3')">free_shipping_type_qty</span>
                         <span class="discount-verb" onclick="insertAtCursor('bogo:prod_type_1,buy_qty,free_qty')">bogo</span>
                         <span class="discount-verb" onclick="insertAtCursor('buy_x_get_1off:3,50')">buy_x_get_1off</span>
                         <span class="discount-verb" onclick="insertAtCursor('type_tier_discount: prod_type_1, 3=3, 5=5')">type_tier_discount</span>
@@ -202,49 +204,38 @@
                         <td>${{ "%.2f"|format(result_b.original_price) }} USD</td></tr>
 
                     <tr>
-                      <td><strong>Merch Discount Applied</strong></td>
-                      <td>${{ "%.2f"|format(result_a.discount_total) }} USD</td>
-                      <td>${{ "%.2f"|format(result_b.discount_total) }} USD</td>
-                    </tr>
-                    <tr>
-                      <td><strong>Shipping Discount</strong></td>
-                      <td>${{ "%.2f"|format(result_a.store_shipping_discount) }} USD</td>
-                      <td>${{ "%.2f"|format(result_b.store_shipping_discount) }} USD</td>
-                    </tr>
-                    <tr>
-                      <td><strong>Total Discount (incl. shipping)</strong></td>
-                      <td>${{ "%.2f"|format(result_a.total_discount_incl_shipping) }} USD</td>
-                      <td>${{ "%.2f"|format(result_b.total_discount_incl_shipping) }} USD</td>
-                    </tr>
-                    <tr>
-                      <td><strong>Discount Breakdown</strong></td>
+                      <td><strong>Total Discount</strong></td>
                       <td>
+                        ${{ "%.2f"|format(result_a.total_discount_incl_shipping) }} USD
                         <ul style="margin:6px 0 0 18px;">
                           {% for d in result_a.discount_breakdown %}
-                          <li>{{ d.label }}: ${{ "%.2f"|format(d.amount) }} USD</li>
+                          <li>[M] {{ d.label }}: ${{ "%.2f"|format(d.amount) }} USD</li>
+                          {% endfor %}
+                          {% for d in result_a.shipping_discount_breakdown %}
+                          <li>[S] {{ d.label }}: ${{ "%.2f"|format(d.amount) }} USD</li>
                           {% endfor %}
                         </ul>
                       </td>
                       <td>
+                        ${{ "%.2f"|format(result_b.total_discount_incl_shipping) }} USD
                         <ul style="margin:6px 0 0 18px;">
                           {% for d in result_b.discount_breakdown %}
-                          <li>{{ d.label }}: ${{ "%.2f"|format(d.amount) }} USD</li>
+                          <li>[M] {{ d.label }}: ${{ "%.2f"|format(d.amount) }} USD</li>
+                          {% endfor %}
+                          {% for d in result_b.shipping_discount_breakdown %}
+                          <li>[S] {{ d.label }}: ${{ "%.2f"|format(d.amount) }} USD</li>
                           {% endfor %}
                         </ul>
                       </td>
                     </tr>
 
-                    <tr><td><strong>Order Total (with discounts)</strong></td>
+                    <tr><td><strong>Order Total (after discounts)</strong></td>
                         <td>${{ "%.2f"|format(result_a.order_total) }} USD ({{ "%.2f"|format(result_a.order_total * result_a.exchange_rate) }} CAD)</td>
                         <td>${{ "%.2f"|format(result_b.order_total) }} USD ({{ "%.2f"|format(result_b.order_total * result_b.exchange_rate) }} CAD)</td></tr>
 
                     <tr><td><strong>Store Shipping Charged</strong></td>
-                        <td>${{ "%.2f"|format(result_a.store_shipping_total) }} USD</td>
-                        <td>${{ "%.2f"|format(result_b.store_shipping_total) }} USD</td></tr>
-
-                    <tr><td><strong>Store Shipping Discount</strong></td>
-                        <td>${{ "%.2f"|format(result_a.store_shipping_discount) }} USD</td>
-                        <td>${{ "%.2f"|format(result_b.store_shipping_discount) }} USD</td></tr>
+                        <td>${{ "%.2f"|format(result_a.store_shipping_total - result_a.store_shipping_discount) }} USD</td>
+                        <td>${{ "%.2f"|format(result_b.store_shipping_total - result_b.store_shipping_discount) }} USD</td></tr>
 
                     <tr style="background: #e6f7f5"><td><strong>Customer Pays</strong></td>
                         <td>${{ "%.2f"|format(result_a.customer_total) }} USD ({{ "%.2f"|format(result_a.order_value_cad) }} CAD) ->
@@ -265,8 +256,26 @@
                         </td></tr>
 
                     <tr><td><strong>COGS</strong></td>
-                        <td>${{ "%.2f"|format(result_a.total_cogs) }} USD ({{ "%.2f"|format(result_a.total_cogs * result_a.exchange_rate) }} CAD)</td>
-                        <td>${{ "%.2f"|format(result_b.total_cogs) }} USD ({{ "%.2f"|format(result_b.total_cogs * result_b.exchange_rate) }} CAD)</td></tr>
+                        <td>
+                          <details>
+                            <summary>${{ "%.2f"|format(result_a.total_cogs) }} USD ({{ "%.2f"|format(result_a.total_cogs * result_a.exchange_rate) }} CAD)</summary>
+                            <ul style="margin:6px 0 0 18px;">
+                              {% for item in result_a.cogs_breakdown %}
+                              <li>{{ item.name }} ({{ item.type }}) × {{ item.qty }} — ${{ "%.2f"|format(item.total_cogs) }} USD</li>
+                              {% endfor %}
+                            </ul>
+                          </details>
+                        </td>
+                        <td>
+                          <details>
+                            <summary>${{ "%.2f"|format(result_b.total_cogs) }} USD ({{ "%.2f"|format(result_b.total_cogs * result_b.exchange_rate) }} CAD)</summary>
+                            <ul style="margin:6px 0 0 18px;">
+                              {% for item in result_b.cogs_breakdown %}
+                              <li>{{ item.name }} ({{ item.type }}) × {{ item.qty }} — ${{ "%.2f"|format(item.total_cogs) }} USD</li>
+                              {% endfor %}
+                            </ul>
+                          </details>
+                        </td></tr>
 
                     <tr><td><strong>Real Shipping Cost</strong></td>
                         <td>${{ "%.2f"|format(result_a.real_shipping_total) }} USD ({{ "%.2f"|format(result_a.real_shipping_total * result_a.exchange_rate) }} CAD)</td>
