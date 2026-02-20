@@ -4,9 +4,9 @@
 - `app.py` is the Flask entry point and HTTP routes.
 - `models.py` contains cart simulation logic and discount application.
 - `discounts/` holds discount “plugins” (each file defines `VERB`, `parse`, `apply`).
-- `data.py` loads product data from `products.json`.
+- `data.py` loads product data from `PRODUCT_FILE` (default `data/products.json`).
 - `templates/` contains Jinja2 HTML templates (`index.html`, `edit_products.html`).
-- `products.json` is the editable product catalog used by the UI.
+- `products.seed.json` is the seed catalog used to bootstrap first run.
 
 ## Build, Test, and Development Commands
 - `python app.py` — start the local Flask server.
@@ -33,6 +33,6 @@
   - Any new discount verbs and example input lines.
 
 ## Configuration & Data Notes
-- Product data lives in `products.json`; the `/edit-products` UI writes back to this file.
+- Product data lives in `PRODUCT_FILE` (container default `/data/products.json`); the `/edit-products` UI writes back to this file.
 - Pricing knobs are environment variables in `models.py` (e.g., `EXCHANGE_RATE`, `COGS_TAX_RATE`).
 - Optional: copy `.env.example` to `.env` to override pricing defaults locally.

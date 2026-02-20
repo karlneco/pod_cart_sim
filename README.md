@@ -1,6 +1,7 @@
 # Pod Cart Sim
 
 Shopping cart simulator for testing pricing, shipping, COGS, and discount grammar rules.
+Runtime product data is stored outside the app code at `PRODUCT_FILE` (default local: `data/products.json`).
 
 ## Local run (port 5002)
 
@@ -27,6 +28,10 @@ Default app data path:
 The compose file expects env vars at:
 
 - `~/Documents/kozakura/apps_data/pod_cart_sim/.env`
+
+Container runtime product data path:
+
+- `/data/products.json` (mounted from `~/Documents/kozakura/apps_data/pod_cart_sim/products.json`)
 
 ## Docker dev (hot reload, no rebuild on code changes)
 

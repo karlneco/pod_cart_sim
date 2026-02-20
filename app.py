@@ -1,18 +1,14 @@
 import json
 import os
-from data import load_products
+from data import load_products, save_products, product_file_path
 from models import simulate_cart, parse_discount_grammar
 from flask import Flask, render_template, request, redirect, flash
-from pathlib import Path
 from dotenv import load_dotenv, find_dotenv
 
 # Load .env if present; skip quietly when missing (e.g., clean checkouts).
 dotenv_path = find_dotenv(filename=".env", usecwd=True)
 if dotenv_path:
     load_dotenv(dotenv_path)
-
-PRODUCT_FILE = Path(os.getenv("PRODUCT_FILE", "products.json"))
-
 
 app = Flask(__name__)
 app.secret_key = os.getenv("FLASK_SECRET_KEY") or os.urandom(32).hex()
@@ -58,10 +54,8 @@ def index():
                 updated_products[key]["price"] = parsed_price
 
         if request.form.get("action") == "save_prices":
-            PRODUCT_FILE.parent.mkdir(parents=True, exist_ok=True)
-            with open(PRODUCT_FILE, "w") as f:
-                json.dump(updated_products, f, indent=2)
-            flash("Prices saved to products.json.", "success")
+            saved_path = save_products(updated_products)
+            flash(f"Prices saved to {saved_path}.", "success")
 
         for key in products:
             qty = _parse_qty(request.form.get(f"qty_{key}", 0))
@@ -91,18 +85,16 @@ def edit_products():
         try:
             # Validate it
             parsed = json.loads(new_json)
-            PRODUCT_FILE.parent.mkdir(parents=True, exist_ok=True)
-            with open(PRODUCT_FILE, "w") as f:
-                json.dump(parsed, f, indent=2)
+            save_products(parsed)
             flash("Product data saved!", "success")
         except Exception as e:
             flash(f"Error: {e}", "error")
-            return render_template("edit_products.html", json_data=new_json)
+            return render_template("edit_products.html", json_data=new_json, product_file=product_file_path())
         return redirect("/")
 
-    with open(PRODUCT_FILE) as f:
+    with open(product_file_path()) as f:
         json_data = f.read()
-    return render_template("edit_products.html", json_data=json_data)
+    return render_template("edit_products.html", json_data=json_data, product_file=product_file_path())
 
 
 @app.route("/healthz", methods=["GET"])
