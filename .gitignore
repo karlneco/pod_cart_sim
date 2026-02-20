@@ -3,4 +3,3 @@
 __pycache__/
 *.py[cod]
 data/products.json
-.DS_Store
