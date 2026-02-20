@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
   pod-cart-sim:
     image: pod-cart-sim:local
