@@ -11,7 +11,7 @@ dotenv_path = find_dotenv(filename=".env", usecwd=True)
 if dotenv_path:
     load_dotenv(dotenv_path)
 
-PRODUCT_FILE = Path("products.json")
+PRODUCT_FILE = Path(os.getenv("PRODUCT_FILE", "products.json"))
 
 
 app = Flask(__name__)
@@ -58,6 +58,7 @@ def index():
                 updated_products[key]["price"] = parsed_price
 
         if request.form.get("action") == "save_prices":
+            PRODUCT_FILE.parent.mkdir(parents=True, exist_ok=True)
             with open(PRODUCT_FILE, "w") as f:
                 json.dump(updated_products, f, indent=2)
             flash("Prices saved to products.json.", "success")
@@ -82,11 +83,15 @@ def index():
 
 @app.route("/edit-products", methods=["GET", "POST"])
 def edit_products():
+    # Ensure configured product file exists before read/edit.
+    load_products()
+
     if request.method == "POST":
         new_json = request.form.get("json_data", "").strip()
         try:
             # Validate it
             parsed = json.loads(new_json)
+            PRODUCT_FILE.parent.mkdir(parents=True, exist_ok=True)
             with open(PRODUCT_FILE, "w") as f:
                 json.dump(parsed, f, indent=2)
             flash("Product data saved!", "success")
@@ -98,3 +103,13 @@ def edit_products():
     with open(PRODUCT_FILE) as f:
         json_data = f.read()
     return render_template("edit_products.html", json_data=json_data)
+
+
+@app.route("/healthz", methods=["GET"])
+def healthz():
+    return {"ok": True}
+
+
+if __name__ == "__main__":
+    port = int(os.getenv("PORT", "5002"))
+    app.run(host="0.0.0.0", port=port, debug=os.getenv("FLASK_DEBUG", "0") == "1")

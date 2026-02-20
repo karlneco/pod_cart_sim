@@ -1,8 +1,13 @@
 services:
-  web:
+  pod-cart-sim:
     build: .
     ports:
       - "5002:5002"
     env_file:
-      - .env
+      - ${HOME}/Documents/kozakura/apps_data/pod_cart_sim/.env
+    environment:
+      PORT: "5002"
+      PRODUCT_FILE: /data/products.json
+    volumes:
+      - ${HOME}/Documents/kozakura/apps_data/pod_cart_sim:/data
     restart: unless-stopped

@@ -1,0 +1,16 @@
+services:
+  pod-cart-sim:
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:5002/healthz', timeout=3).read()"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  smoke-test:
+    profiles: ["test"]
+    build: .
+    depends_on:
+      pod-cart-sim:
+        condition: service_healthy
+    command: ["python", "scripts/docker_smoke_check.py", "--base-url", "http://pod-cart-sim:5002"]
