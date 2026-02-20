@@ -103,7 +103,10 @@ def apply_shipping_discounts(cart, products, discount_rules, original_price, sto
     return shipping_discount, breakdown
 
 
-def simulate_cart(cart, products, discount_rules=[]):
+def simulate_cart(cart, products, discount_rules=None):
+    if discount_rules is None:
+        discount_rules = []
+
     total_price = 0.0
     total_cogs = 0.0
     store_shipping = 0.0

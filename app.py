@@ -1,4 +1,5 @@
 import json
+import os
 from data import load_products
 from models import simulate_cart, parse_discount_grammar
 from flask import Flask, render_template, request, redirect, flash
@@ -14,7 +15,7 @@ PRODUCT_FILE = Path("products.json")
 
 
 app = Flask(__name__)
-app.secret_key = "super-secret-key-change-this"
+app.secret_key = os.getenv("FLASK_SECRET_KEY") or os.urandom(32).hex()
 
 
 def _parse_price(value):
@@ -27,6 +28,16 @@ def _parse_price(value):
         return float(cleaned)
     except ValueError:
         return None
+
+
+def _parse_qty(value):
+    if value is None:
+        return 0
+    try:
+        qty = int(str(value).strip())
+    except ValueError:
+        return 0
+    return qty if qty > 0 else 0
 
 
 @app.route("/", methods=["GET", "POST"])
@@ -52,7 +63,7 @@ def index():
             flash("Prices saved to products.json.", "success")
 
         for key in products:
-            qty = int(request.form.get(f"qty_{key}", 0))
+            qty = _parse_qty(request.form.get(f"qty_{key}", 0))
             if qty > 0:
                 cart[key] = qty
 
