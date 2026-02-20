@@ -45,7 +45,20 @@ fi
 docker compose -f "${COMPOSE_FILE}" up -d --remove-orphans
 
 for attempt in $(seq 1 30); do
-  if curl -fsS "${HEALTH_URL}" >/dev/null; then
+  CONTAINER_ID="$(docker compose -f "${COMPOSE_FILE}" ps -q "${SERVICE_NAME}" || true)"
+  if [[ -n "${CONTAINER_ID}" ]]; then
+    RUNNING_STATE="$(docker inspect -f '{{.State.Status}}' "${CONTAINER_ID}" 2>/dev/null || true)"
+    HEALTH_STATE="$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}unknown{{end}}' "${CONTAINER_ID}" 2>/dev/null || true)"
+    if [[ "${RUNNING_STATE}" != "running" ]]; then
+      break
+    fi
+    if [[ "${HEALTH_STATE}" == "healthy" ]]; then
+      echo "Deploy healthy (container healthcheck)."
+      exit 0
+    fi
+  fi
+
+  if curl -fsS "${HEALTH_URL}" >/dev/null 2>&1; then
     echo "Deploy healthy."
     exit 0
   fi
@@ -60,6 +73,19 @@ if [[ "${HAS_ROLLBACK_IMAGE}" == "true" ]]; then
   docker image tag "${ROLLBACK_TAG}" "${TARGET_IMAGE}"
   docker compose -f "${COMPOSE_FILE}" up -d --no-build --remove-orphans "${SERVICE_NAME}"
   for attempt in $(seq 1 30); do
+    CONTAINER_ID="$(docker compose -f "${COMPOSE_FILE}" ps -q "${SERVICE_NAME}" || true)"
+    if [[ -n "${CONTAINER_ID}" ]]; then
+      RUNNING_STATE="$(docker inspect -f '{{.State.Status}}' "${CONTAINER_ID}" 2>/dev/null || true)"
+      HEALTH_STATE="$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}unknown{{end}}' "${CONTAINER_ID}" 2>/dev/null || true)"
+      if [[ "${RUNNING_STATE}" != "running" ]]; then
+        break
+      fi
+      if [[ "${HEALTH_STATE}" == "healthy" ]]; then
+        echo "Rollback completed and service is healthy." >&2
+        exit 1
+      fi
+    fi
+
     if curl -fsS "${HEALTH_URL}" >/dev/null 2>&1; then
       echo "Rollback completed and service is healthy." >&2
       exit 1
