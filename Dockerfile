@@ -1,4 +1,4 @@
-FROM python:3.12-slim
+FROM python:3.11-slim
 
 WORKDIR /app
 
@@ -9,9 +9,12 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy app source
 COPY . ./
 
-ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    FLASK_APP=app.py \
+    FLASK_RUN_HOST=0.0.0.0 \
+    FLASK_RUN_PORT=5002
 
 EXPOSE 5002
 
-# Use gunicorn in container
-CMD ["gunicorn", "-w", "2", "-b", "0.0.0.0:5002", "app:app"]
+CMD ["python", "app.py"]
