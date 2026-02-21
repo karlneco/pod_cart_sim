@@ -6,6 +6,26 @@ SEED_PRODUCT_FILE = Path(__file__).with_name("products.seed.json")
 LEGACY_PRODUCT_FILE = Path(__file__).with_name("products.json")
 LOCAL_PRODUCT_FILE = Path("data/products.json")
 
+# Allowed values for each metric display mode
+DISPLAY_MODES = {"USD", "CAD", "SWAP"}
+
+# Defaults — matches data/display_config.json
+_DISPLAY_CONFIG_DEFAULTS = {
+    "original_price":         "USD",
+    "total_discount":         "SWAP",
+    "order_total":            "SWAP",
+    "store_shipping_charged": "SWAP",
+    "customer_pays":          "SWAP",
+    "cogs":                   "SWAP",
+    "real_shipping_cost":     "SWAP",
+    "cogs_tax":               "SWAP",
+    "cogs_total":             "SWAP",
+    "store_fees":             "CAD",
+    "store_payout":           "CAD",
+    "total_expenses":         "CAD",
+    "profit_loss":            "CAD",
+}
+
 
 def _product_file() -> Path:
     return Path(os.getenv("PRODUCT_FILE", str(LOCAL_PRODUCT_FILE)))
@@ -40,3 +60,29 @@ def save_products(products: dict) -> Path:
     with open(target_path, "w") as target:
         json.dump(products, target, indent=2)
     return target_path
+
+
+def _display_config_file() -> Path:
+    # Always sits next to products.json (works locally and in Docker)
+    return _product_file().parent / "display_config.json"
+
+
+def load_display_config() -> dict:
+    """Load display_config.json, seeding it from defaults if absent.
+    Unknown keys in the file are ignored; missing keys fall back to defaults.
+    Invalid mode values are silently replaced with the default."""
+    cfg_path = _display_config_file()
+    if not cfg_path.exists():
+        cfg_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(cfg_path, "w") as f:
+            json.dump(_DISPLAY_CONFIG_DEFAULTS, f, indent=2)
+        return dict(_DISPLAY_CONFIG_DEFAULTS)
+
+    with open(cfg_path, "r") as f:
+        raw = json.load(f)
+
+    result = dict(_DISPLAY_CONFIG_DEFAULTS)
+    for key, default in _DISPLAY_CONFIG_DEFAULTS.items():
+        value = raw.get(key, default)
+        result[key] = value if value in DISPLAY_MODES else default
+    return result

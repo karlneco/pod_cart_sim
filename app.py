@@ -1,6 +1,6 @@
 import json
 import os
-from data import load_products, save_products, product_file_path
+from data import load_products, save_products, product_file_path, load_display_config
 from models import simulate_cart, parse_discount_grammar
 from flask import Flask, render_template, request, redirect, flash
 from dotenv import load_dotenv, find_dotenv
@@ -72,7 +72,8 @@ def index():
         result_b = simulate_cart(cart, updated_products, discount_rules_b)
 
     return render_template("index.html", products=updated_products, result_a=result_a, result_b=result_b,
-                           cart=cart, discount_text_a=discount_text_a, discount_text_b=discount_text_b)
+                           cart=cart, discount_text_a=discount_text_a, discount_text_b=discount_text_b,
+                           cfg=load_display_config())
 
 
 @app.route("/edit-products", methods=["GET", "POST"])

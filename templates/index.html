@@ -6,21 +6,31 @@
     <title>Cart Simulation</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
     <script>
+        // ── Textarea focus tracking ───────────────────────────────────────
         let activeTextarea = null;
 
         document.addEventListener('DOMContentLoaded', function () {
             document.querySelectorAll("textarea").forEach(el => {
-                el.addEventListener("focus", () => {
-                    activeTextarea = el;
-                });
+                el.addEventListener("focus", () => { activeTextarea = el; });
             });
+
+            bubbleSelectedProducts();
+            document.querySelectorAll('.qty-input').forEach(input => {
+                input.addEventListener('change', bubbleSelectedProducts);
+            });
+
+            // Restore last-used currency preference
+            const saved = localStorage.getItem('preferredCurrency');
+            if (saved === 'CAD') {
+                currentCurrency = 'CAD';
+                applyCurrentCurrency();
+            }
         });
 
         function insertAtCursor(text) {
             if (!activeTextarea) return;
 
             const start = activeTextarea.selectionStart;
-            const end = activeTextarea.selectionEnd;
             const value = activeTextarea.value;
             if (value.length === 0) {
                 activeTextarea.value = text;
@@ -74,15 +84,12 @@
             let running = 0;
             for (let i = 0; i < args.length; i++) {
                 const argLen = args[i].length;
-                const start = running;
                 const end = running + argLen;
-                if (cursorInArgs >= start && cursorInArgs <= end) {
-                    if (typeIndexes.includes(i)) {
-                        targetIndex = i;
-                    }
+                if (cursorInArgs >= running && cursorInArgs <= end) {
+                    if (typeIndexes.includes(i)) targetIndex = i;
                     break;
                 }
-                running = end + 1; // +1 for comma
+                running = end + 1;
             }
 
             if (args[targetIndex] === undefined) return;
@@ -97,46 +104,87 @@
             activeTextarea.selectionStart = activeTextarea.selectionEnd = newCursor;
             activeTextarea.focus();
         }
+
+        // ── Product bubbling (non-zero qty floats to top) ─────────────────
+        function bubbleSelectedProducts() {
+            const tbody = document.querySelector('.products-table tbody');
+            if (!tbody) return;
+            const rows = Array.from(tbody.querySelectorAll('tr'));
+            const withQty    = rows.filter(r => parseInt(r.querySelector('.qty-input').value) > 0);
+            const withoutQty = rows.filter(r => !(parseInt(r.querySelector('.qty-input').value) > 0));
+            [...withQty, ...withoutQty].forEach(row => tbody.appendChild(row));
+        }
+
+        // ── Currency toggle ───────────────────────────────────────────────
+        let currentCurrency = 'USD';
+
+        function toggleCurrency() {
+            currentCurrency = currentCurrency === 'USD' ? 'CAD' : 'USD';
+            localStorage.setItem('preferredCurrency', currentCurrency);
+            applyCurrentCurrency();
+        }
+
+        function applyCurrentCurrency() {
+            const isCAD = currentCurrency === 'CAD';
+
+            document.querySelectorAll('.curr-opt').forEach(el => el.classList.remove('active'));
+            const activeEl = document.getElementById('curr-' + currentCurrency);
+            if (activeEl) activeEl.classList.add('active');
+
+            document.querySelectorAll('.price-widget').forEach(el => {
+                const usd = el.dataset.usd;
+                const cad = el.dataset.cad;
+                el.querySelector('.pw-main').textContent = isCAD ? cad : usd;
+                el.querySelector('.pw-alt').textContent  = isCAD ? usd : cad;
+                el.querySelector('.pw-cur').textContent  = isCAD ? 'USD' : 'CAD';
+            });
+        }
     </script>
 </head>
 <body>
     <header class="site-header">
-        <div class="container">
-            <a class="brand" href="/">Cart Simulation Studio</a>
-            <p class="subtitle">Compare discount strategies with a clean, shared look.</p>
+        <div class="site-header-inner">
+            <div class="header-brand">
+                <a class="brand" href="/">Cart Simulation Studio</a>
+                <p class="subtitle">Compare discount strategies with a clean, shared look.</p>
+            </div>
+            <div class="header-actions">
+                <a class="btn header-btn-secondary" href="/edit-products">Edit Products</a>
+                <button class="btn header-btn-secondary" type="submit" form="main-form" name="action" value="save_prices">Save Prices</button>
+                <button class="btn header-btn-primary" type="submit" form="main-form" name="action" value="simulate">Simulate Cart(s)</button>
+            </div>
         </div>
     </header>
 
-    <main class="container">
-        <form method="POST">
-            <section class="card">
-                <div class="toolbar">
-                    <div>
-                        <h1>Cart Simulator</h1>
-                        <p class="muted">Adjust quantities, apply discount rules, and compare A vs B.</p>
-                    </div>
-                    <div class="actions">
-                        <a class="btn secondary" href="/edit-products">Edit Product Data</a>
-                        <button class="btn secondary" type="submit" name="action" value="save_prices">Save Prices</button>
-                        <button class="btn" type="submit" name="action" value="simulate">Simulate Cart(s)</button>
-                    </div>
-                </div>
-            </section>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div class="flash-bar">
+        {% for category, message in messages %}
+        <div class="flash {{ category }}">{{ message }}</div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% endwith %}
 
-            <div class="layout-split">
-                <section class="card compact-card">
+    <div class="app-layout">
+
+        <!-- ═══ LEFT: CONTROLS PANEL ══════════════════════════════════════ -->
+        <div class="controls-panel">
+            <form id="main-form" method="POST" class="controls-form">
+
+                <!-- Products -->
+                <div class="panel-card">
                     <div class="section-title">
                         <h2>Products</h2>
-                        <span class="muted">Quick cart builder</span>
+                        <span class="muted">click row → fill type</span>
                     </div>
-                    <div class="table-scroll">
-                        <table class="data-table compact-table">
+                    <div class="table-scroll products-scroll">
+                        <table class="data-table compact-table products-table">
                             <thead>
                                 <tr>
                                     <th>Product</th>
                                     <th>Type</th>
                                     <th>Price</th>
-                                    <th>Ship</th>
                                     <th>Qty</th>
                                 </tr>
                             </thead>
@@ -144,13 +192,12 @@
                                 {% for key, item in products.items() %}
                                 <tr class="product-row" data-type="{{ item.type }}" onclick="replaceTypePlaceholder('{{ item.type }}')">
                                     <td>{{ item.name }}</td>
-                                    <td>{{ item.type }}</td>
+                                    <td><code class="type-tag">{{ item.type }}</code></td>
                                     <td>
                                         <input class="price-input" type="text" name="price_{{ key }}"
                                                value="{{ "%.2f"|format(item.price) }}" inputmode="decimal"
                                                onclick="event.stopPropagation()" />
                                     </td>
-                                    <td>${{ "%.2f"|format(item.store_shipping) }}</td>
                                     <td><input class="qty-input" type="number" name="qty_{{ key }}" min="0"
                                                value="{{ cart[key] if key in cart else 0 }}" onclick="event.stopPropagation()" /></td>
                                 </tr>
@@ -158,12 +205,13 @@
                             </tbody>
                         </table>
                     </div>
-                </section>
+                </div>
 
-                <section class="card">
+                <!-- Discounts -->
+                <div class="panel-card discounts-panel">
                     <h2>Discount Verbs</h2>
-                    <p class="muted">Click to insert a template into the active discount textarea.</p>
-                    <div>
+                    <p class="muted">Click to insert into the active textarea.</p>
+                    <div class="verb-chips">
                         <span class="discount-verb" onclick="insertAtCursor('whole_order:x')">whole_order</span>
                         <span class="discount-verb" onclick="insertAtCursor('type_discount:prod_type_1,10')">type_discount</span>
                         <span class="discount-verb" onclick="insertAtCursor('min_total:total=percent')">min_total</span>
@@ -174,174 +222,244 @@
                         <span class="discount-verb" onclick="insertAtCursor('type_tier_discount: prod_type_1, 3=3, 5=5')">type_tier_discount</span>
                         <span class="discount-verb" onclick="insertAtCursor('buy_type_get_type_discount: prod_type_1, prod_type_2, 15')">buy_type_get_type_discount</span>
                         <span class="discount-verb" onclick="insertAtCursor('cart_quantity_discount: 5,10')">cart_quantity_discount</span>
-                </div>
+                    </div>
 
-                    <div class="grid-2" style="margin-top: 16px;">
-                        <div>
-                            <label for="discount_text_a"><strong>Discount Command(s) A</strong></label>
+                    <div class="discount-row">
+                        <div class="discount-col">
+                            <label for="discount_text_a">Discount A</label>
                             <textarea id="discount_text_a" name="discount_text_a" rows="4">{{ discount_text_a }}</textarea>
-                            <button class="btn secondary" type="button" onclick="document.getElementById('discount_text_a').value = ''">Clear</button>
+                            <button class="btn secondary small-btn" type="button"
+                                    onclick="document.getElementById('discount_text_a').value = ''">Clear</button>
                         </div>
-                        <div>
-                            <label for="discount_text_b"><strong>Discount Command(s) B</strong></label>
+                        <div class="discount-col discount-b-col">
+                            <label for="discount_text_b">Discount B</label>
                             <textarea id="discount_text_b" name="discount_text_b" rows="4">{{ discount_text_b }}</textarea>
-                            <button class="btn secondary" type="button" onclick="document.getElementById('discount_text_b').value = ''">Clear</button>
+                            <button class="btn secondary small-btn" type="button"
+                                    onclick="document.getElementById('discount_text_b').value = ''">Clear</button>
                         </div>
                     </div>
-                </section>
+                </div>
+
+            </form>
+        </div>
+
+        <!-- ═══ RIGHT: RESULTS PANEL ══════════════════════════════════════ -->
+        <div class="results-panel">
+
+            {% if result_a and result_b %}
+
+            {# ── Unified price display macro ────────────────────────────────
+               mode comes from cfg (display_config.json): USD | CAD | SWAP
+               SWAP: dual-currency widget toggled by JS
+               USD / CAD: static, always shows that currency only #}
+            {% macro pc(usd, cad, mode) %}{%- if mode == 'SWAP' -%}<span class="price-widget" data-usd="{{ "%.2f"|format(usd) }}" data-cad="{{ "%.2f"|format(cad) }}"><span class="price-primary">$<span class="pw-main">{{ "%.2f"|format(usd) }}</span></span><span class="price-secondary"><span class="pw-alt">{{ "%.2f"|format(cad) }}</span><span class="pw-cur">CAD</span></span></span>{%- elif mode == 'CAD' -%}<span class="price-static">${{ "%.2f"|format(cad) }}&nbsp;<span class="cur-badge">CAD</span></span>{%- else -%}<span class="price-static">${{ "%.2f"|format(usd) }}&nbsp;<span class="cur-badge">USD</span></span>{%- endif %}{% endmacro %}
+
+            <div class="results-header">
+                <h2>Simulation Results</h2>
+                <button type="button" class="currency-toggle-btn" onclick="toggleCurrency()">
+                    <span id="curr-USD" class="curr-opt active">USD</span>
+                    <span class="curr-sep"> / </span>
+                    <span id="curr-CAD" class="curr-opt">CAD</span>
+                </button>
             </div>
-        </form>
 
-        {% if result_a and result_b %}
-        <section class="card">
-            <h2>Simulation Comparison</h2>
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th>Metric</th>
-                        <th>Discount A</th>
-                        <th>Discount B</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr><td><strong>Original Price</strong></td>
-                        <td>${{ "%.2f"|format(result_a.original_price) }} USD</td>
-                        <td>${{ "%.2f"|format(result_b.original_price) }} USD</td></tr>
+            <div class="results-scroll">
+                <table class="data-table results-table">
+                    <thead>
+                        <tr>
+                            <th>Metric</th>
+                            <th>Discount A</th>
+                            <th>Discount B</th>
+                        </tr>
+                    </thead>
+                    <tbody>
 
-                    <tr>
-                      <td><strong>Total Discount</strong></td>
-                      <td>
-                        ${{ "%.2f"|format(result_a.total_discount_incl_shipping) }} USD
-                        <ul style="margin:6px 0 0 18px;">
-                          {% for d in result_a.discount_breakdown %}
-                          <li>[M] {{ d.label }}: ${{ "%.2f"|format(d.amount) }} USD</li>
-                          {% endfor %}
-                          {% for d in result_a.shipping_discount_breakdown %}
-                          <li>[S] {{ d.label }}: ${{ "%.2f"|format(d.amount) }} USD</li>
-                          {% endfor %}
-                        </ul>
-                      </td>
-                      <td>
-                        ${{ "%.2f"|format(result_b.total_discount_incl_shipping) }} USD
-                        <ul style="margin:6px 0 0 18px;">
-                          {% for d in result_b.discount_breakdown %}
-                          <li>[M] {{ d.label }}: ${{ "%.2f"|format(d.amount) }} USD</li>
-                          {% endfor %}
-                          {% for d in result_b.shipping_discount_breakdown %}
-                          <li>[S] {{ d.label }}: ${{ "%.2f"|format(d.amount) }} USD</li>
-                          {% endfor %}
-                        </ul>
-                      </td>
-                    </tr>
+                        <!-- Original Price -->
+                        <tr>
+                            <td><strong>Original Price</strong></td>
+                            <td class="price-cell">{{ pc(result_a.original_price, result_a.original_price * result_a.exchange_rate, cfg.original_price) }}</td>
+                            <td class="price-cell">{{ pc(result_b.original_price, result_b.original_price * result_b.exchange_rate, cfg.original_price) }}</td>
+                        </tr>
 
-                    <tr><td><strong>Order Total (after discounts)</strong></td>
-                        <td>${{ "%.2f"|format(result_a.order_total) }} USD ({{ "%.2f"|format(result_a.order_total * result_a.exchange_rate) }} CAD)</td>
-                        <td>${{ "%.2f"|format(result_b.order_total) }} USD ({{ "%.2f"|format(result_b.order_total * result_b.exchange_rate) }} CAD)</td></tr>
-
-                    <tr><td><strong>Store Shipping Charged</strong></td>
-                        <td>${{ "%.2f"|format(result_a.store_shipping_total - result_a.store_shipping_discount) }} USD</td>
-                        <td>${{ "%.2f"|format(result_b.store_shipping_total - result_b.store_shipping_discount) }} USD</td></tr>
-
-                    <tr style="background: #e6f7f5"><td><strong>Customer Pays</strong></td>
-                        <td>${{ "%.2f"|format(result_a.customer_total) }} USD ({{ "%.2f"|format(result_a.order_value_cad) }} CAD) ->
-                            {% set denom = result_a.original_price + result_a.store_shipping_total %}
-                            {% if denom > 0 %}
-                                {{ "%.2f"|format((1 - (result_a.customer_total / denom)) * 100) }}% OFF
-                            {% else %}
-                                -
-                            {% endif %}
-                        </td>
-                        <td>${{ "%.2f"|format(result_b.customer_total) }} USD ({{ "%.2f"|format(result_b.order_value_cad) }} CAD)->
-                            {% set denom = result_b.original_price + result_b.store_shipping_total %}
-                            {% if denom > 0 %}
-                                {{ "%.2f"|format((1 - (result_b.customer_total / denom)) * 100) }}% OFF
-                            {% else %}
-                                -
-                            {% endif %}
-                        </td></tr>
-
-                    <tr><td><strong>COGS</strong></td>
-                        <td>
-                          <details>
-                            <summary>${{ "%.2f"|format(result_a.total_cogs) }} USD ({{ "%.2f"|format(result_a.total_cogs * result_a.exchange_rate) }} CAD)</summary>
-                            <ul style="margin:6px 0 0 18px;">
-                              {% for item in result_a.cogs_breakdown %}
-                              <li>{{ item.name }} ({{ item.type }}) × {{ item.qty }} — ${{ "%.2f"|format(item.total_cogs) }} USD</li>
-                              {% endfor %}
-                            </ul>
-                          </details>
-                        </td>
-                        <td>
-                          <details>
-                            <summary>${{ "%.2f"|format(result_b.total_cogs) }} USD ({{ "%.2f"|format(result_b.total_cogs * result_b.exchange_rate) }} CAD)</summary>
-                            <ul style="margin:6px 0 0 18px;">
-                              {% for item in result_b.cogs_breakdown %}
-                              <li>{{ item.name }} ({{ item.type }}) × {{ item.qty }} — ${{ "%.2f"|format(item.total_cogs) }} USD</li>
-                              {% endfor %}
-                            </ul>
-                          </details>
-                        </td></tr>
-
-                    <tr><td><strong>Real Shipping Cost</strong></td>
-                        <td>${{ "%.2f"|format(result_a.real_shipping_total) }} USD ({{ "%.2f"|format(result_a.real_shipping_total * result_a.exchange_rate) }} CAD)</td>
-                        <td>${{ "%.2f"|format(result_b.real_shipping_total) }} USD ({{ "%.2f"|format(result_b.real_shipping_total * result_b.exchange_rate) }} CAD)</td></tr>
-
-                    <tr><td><strong>COGS Tax (7%)</strong></td>
-                        <td>${{ "%.2f"|format(result_a.cogs_tax) }} USD ({{ "%.2f"|format(result_a.cogs_tax * result_a.exchange_rate) }} CAD)</td>
-                        <td>${{ "%.2f"|format(result_b.cogs_tax) }} USD ({{ "%.2f"|format(result_b.cogs_tax * result_b.exchange_rate) }} CAD)</td></tr>
-
-                    <tr style="border: 3px solid #f97316;"><td><strong>COGS Total (and %)</strong></td>
-                        <td>{{ "%.2f"|format(result_a.total_cogs + result_a.real_shipping_total + result_a.cogs_tax) }} USD
-                            {% set denom = result_a.customer_total %}
-                            {% if denom > 0 %}
-                                (@ {{ "%.2f"|format((result_a.total_cogs + result_a.real_shipping_total + result_a.cogs_tax)/result_a.customer_total*100) }}%)
-                            {% else %}
-                                -
-                            {% endif %}
+                        <!-- Total Discount -->
+                        <tr>
+                            <td><strong>Total Discount</strong></td>
+                            <td class="price-cell">
+                                {{ pc(result_a.total_discount_incl_shipping, result_a.total_discount_incl_shipping * result_a.exchange_rate, cfg.total_discount) }}
+                                {% if result_a.discount_breakdown or result_a.shipping_discount_breakdown %}
+                                <ul class="breakdown-list">
+                                    {% for d in result_a.discount_breakdown %}
+                                    <li>[M] {{ d.label }}: ${{ "%.2f"|format(d.amount) }}</li>
+                                    {% endfor %}
+                                    {% for d in result_a.shipping_discount_breakdown %}
+                                    <li>[S] {{ d.label }}: ${{ "%.2f"|format(d.amount) }}</li>
+                                    {% endfor %}
+                                </ul>
+                                {% endif %}
                             </td>
-                        <td>{{ "%.2f"|format(result_b.total_cogs + result_b.real_shipping_total + result_b.cogs_tax) }} USD
-                            {% set denom = result_b.customer_total %}
-                            {% if denom > 0 %}
-                                (@ {{ "%.2f"|format((result_b.total_cogs + result_b.real_shipping_total + result_b.cogs_tax)/result_b.customer_total*100) }}%)
-                            {% else %}
-                                -
-                            {% endif %}
-                        </td>
-                    </tr>
+                            <td class="price-cell">
+                                {{ pc(result_b.total_discount_incl_shipping, result_b.total_discount_incl_shipping * result_b.exchange_rate, cfg.total_discount) }}
+                                {% if result_b.discount_breakdown or result_b.shipping_discount_breakdown %}
+                                <ul class="breakdown-list">
+                                    {% for d in result_b.discount_breakdown %}
+                                    <li>[M] {{ d.label }}: ${{ "%.2f"|format(d.amount) }}</li>
+                                    {% endfor %}
+                                    {% for d in result_b.shipping_discount_breakdown %}
+                                    <li>[S] {{ d.label }}: ${{ "%.2f"|format(d.amount) }}</li>
+                                    {% endfor %}
+                                </ul>
+                                {% endif %}
+                            </td>
+                        </tr>
 
-                    <tr><td><strong>Store Fees</strong></td>
-                        <td>{{ "%.2f"|format(result_a.store_fee_cad) }} CAD</td>
-                        <td>{{ "%.2f"|format(result_b.store_fee_cad) }} CAD</td></tr>
+                        <!-- Order Total after discounts -->
+                        <tr>
+                            <td><strong>Order Total <span class="meta-label">(after discounts)</span></strong></td>
+                            <td class="price-cell">{{ pc(result_a.order_total, result_a.order_total * result_a.exchange_rate, cfg.order_total) }}</td>
+                            <td class="price-cell">{{ pc(result_b.order_total, result_b.order_total * result_b.exchange_rate, cfg.order_total) }}</td>
+                        </tr>
 
-                    <tr><td><strong>Store Payout</strong></td>
-                    <td>{{ "%.2f"|format(result_a.store_payout_cad) }} CAD</td>
-                    <td>{{ "%.2f"|format(result_b.store_payout_cad) }} CAD</td></tr>
+                        <!-- Store Shipping Charged -->
+                        <tr>
+                            {% set ship_a = result_a.store_shipping_total - result_a.store_shipping_discount %}
+                            {% set ship_b = result_b.store_shipping_total - result_b.store_shipping_discount %}
+                            <td><strong>Store Shipping Charged</strong></td>
+                            <td class="price-cell">{{ pc(ship_a, ship_a * result_a.exchange_rate, cfg.store_shipping_charged) }}</td>
+                            <td class="price-cell">{{ pc(ship_b, ship_b * result_b.exchange_rate, cfg.store_shipping_charged) }}</td>
+                        </tr>
 
-                    <tr><td><strong>Total Cost</strong></td>
-                    <td>{{ "%.2f"|format(result_a.total_expenses_cad) }} CAD</td>
-                    <td>{{ "%.2f"|format(result_b.total_expenses_cad) }} CAD</td></tr>
+                        <!-- Customer Pays — highlighted teal -->
+                        <tr class="row-highlight-teal">
+                            <td><strong>Customer Pays</strong></td>
+                            <td class="price-cell">
+                                {{ pc(result_a.customer_total, result_a.order_value_cad, cfg.customer_pays) }}
+                                {% set denom_a = result_a.original_price + result_a.store_shipping_total %}
+                                {% if denom_a > 0 %}
+                                <span class="pct-badge">{{ "%.1f"|format((1 - result_a.customer_total / denom_a) * 100) }}% off</span>
+                                {% endif %}
+                            </td>
+                            <td class="price-cell">
+                                {{ pc(result_b.customer_total, result_b.order_value_cad, cfg.customer_pays) }}
+                                {% set denom_b = result_b.original_price + result_b.store_shipping_total %}
+                                {% if denom_b > 0 %}
+                                <span class="pct-badge">{{ "%.1f"|format((1 - result_b.customer_total / denom_b) * 100) }}% off</span>
+                                {% endif %}
+                            </td>
+                        </tr>
 
+                        <!-- COGS (expandable) -->
+                        <tr>
+                            <td><strong>COGS</strong></td>
+                            <td class="price-cell">
+                                <details>
+                                    <summary>{{ pc(result_a.total_cogs, result_a.total_cogs * result_a.exchange_rate, cfg.cogs) }}</summary>
+                                    <ul class="breakdown-list">
+                                        {% for item in result_a.cogs_breakdown %}
+                                        <li>{{ item.name }} ({{ item.type }}) × {{ item.qty }} — ${{ "%.2f"|format(item.total_cogs) }}</li>
+                                        {% endfor %}
+                                    </ul>
+                                </details>
+                            </td>
+                            <td class="price-cell">
+                                <details>
+                                    <summary>{{ pc(result_b.total_cogs, result_b.total_cogs * result_b.exchange_rate, cfg.cogs) }}</summary>
+                                    <ul class="breakdown-list">
+                                        {% for item in result_b.cogs_breakdown %}
+                                        <li>{{ item.name }} ({{ item.type }}) × {{ item.qty }} — ${{ "%.2f"|format(item.total_cogs) }}</li>
+                                        {% endfor %}
+                                    </ul>
+                                </details>
+                            </td>
+                        </tr>
 
-                    <tr style="border: 3px solid #10b981;"><td><strong>Profit/Loss in CAD (margin)</strong></td>
-                        <td><strong>{{ "%.2f"|format(result_a.profit_cad) }}
-                            {% if result_a.order_value_cad > 0 %}
-                              ({{ "%.2f"|format(result_a.profit_cad/result_a.order_value_cad*100) }}%)
-                            {% else %}
-                              (-)
-                            {% endif %}
-                            </strong> CAD</td>
-                        <td><strong>{{ "%.2f"|format(result_b.profit_cad) }}
-                            {% if result_b.order_value_cad > 0 %}
-                              ({{ "%.2f"|format(result_b.profit_cad/result_b.order_value_cad*100) }}%)
-                            {% else %}
-                              (-)
-                            {% endif %}
-                            </strong> CAD</td>
-                    </tr>
-                </tbody>
-            </table>
-        </section>
-        {% endif %}
-    </main>
+                        <!-- Real Shipping Cost -->
+                        <tr>
+                            <td><strong>Real Shipping Cost</strong></td>
+                            <td class="price-cell">{{ pc(result_a.real_shipping_total, result_a.real_shipping_total * result_a.exchange_rate, cfg.real_shipping_cost) }}</td>
+                            <td class="price-cell">{{ pc(result_b.real_shipping_total, result_b.real_shipping_total * result_b.exchange_rate, cfg.real_shipping_cost) }}</td>
+                        </tr>
+
+                        <!-- COGS Tax -->
+                        <tr>
+                            <td><strong>COGS Tax ({{ (result_a.cogs_tax / (result_a.total_cogs + result_a.real_shipping_total) * 100)|round|int if (result_a.total_cogs + result_a.real_shipping_total) > 0 else 7 }}%)</strong></td>
+                            <td class="price-cell">{{ pc(result_a.cogs_tax, result_a.cogs_tax * result_a.exchange_rate, cfg.cogs_tax) }}</td>
+                            <td class="price-cell">{{ pc(result_b.cogs_tax, result_b.cogs_tax * result_b.exchange_rate, cfg.cogs_tax) }}</td>
+                        </tr>
+
+                        <!-- COGS Total — highlighted orange -->
+                        <tr class="row-highlight-orange">
+                            {% set cogs_a = result_a.total_cogs + result_a.real_shipping_total + result_a.cogs_tax %}
+                            {% set cogs_b = result_b.total_cogs + result_b.real_shipping_total + result_b.cogs_tax %}
+                            <td><strong>COGS Total</strong></td>
+                            <td class="price-cell">
+                                {{ pc(cogs_a, cogs_a * result_a.exchange_rate, cfg.cogs_total) }}
+                                {% if result_a.customer_total > 0 %}
+                                <span class="pct-badge">{{ "%.1f"|format(cogs_a / result_a.customer_total * 100) }}%</span>
+                                {% endif %}
+                            </td>
+                            <td class="price-cell">
+                                {{ pc(cogs_b, cogs_b * result_b.exchange_rate, cfg.cogs_total) }}
+                                {% if result_b.customer_total > 0 %}
+                                <span class="pct-badge">{{ "%.1f"|format(cogs_b / result_b.customer_total * 100) }}%</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+
+                        <!-- Store Fees (CAD-native) -->
+                        <tr>
+                            <td><strong>Store Fees</strong></td>
+                            <td class="price-cell">{{ pc(result_a.store_fee_cad / result_a.exchange_rate, result_a.store_fee_cad, cfg.store_fees) }}</td>
+                            <td class="price-cell">{{ pc(result_b.store_fee_cad / result_b.exchange_rate, result_b.store_fee_cad, cfg.store_fees) }}</td>
+                        </tr>
+
+                        <!-- Store Payout (CAD-native) -->
+                        <tr>
+                            <td><strong>Store Payout</strong></td>
+                            <td class="price-cell">{{ pc(result_a.store_payout_cad / result_a.exchange_rate, result_a.store_payout_cad, cfg.store_payout) }}</td>
+                            <td class="price-cell">{{ pc(result_b.store_payout_cad / result_b.exchange_rate, result_b.store_payout_cad, cfg.store_payout) }}</td>
+                        </tr>
+
+                        <!-- Total Expenses (CAD-native) -->
+                        <tr>
+                            <td><strong>Total Expenses</strong></td>
+                            <td class="price-cell">{{ pc(result_a.total_expenses_cad / result_a.exchange_rate, result_a.total_expenses_cad, cfg.total_expenses) }}</td>
+                            <td class="price-cell">{{ pc(result_b.total_expenses_cad / result_b.exchange_rate, result_b.total_expenses_cad, cfg.total_expenses) }}</td>
+                        </tr>
+
+                        <!-- Profit/Loss — green or red depending on sign -->
+                        <tr class="row-highlight-green">
+                            <td><strong>Profit/Loss</strong></td>
+                            <td class="price-cell{% if result_a.profit_cad < 0 %} profit-loss{% endif %}">
+                                {{ pc(result_a.profit_cad / result_a.exchange_rate, result_a.profit_cad, cfg.profit_loss) }}
+                                {% if result_a.order_value_cad > 0 %}
+                                <span class="pct-badge {% if result_a.profit_cad >= 0 %}pct-green{% else %}pct-red{% endif %}">{{ "%.1f"|format(result_a.profit_cad / result_a.order_value_cad * 100) }}%</span>
+                                {% endif %}
+                            </td>
+                            <td class="price-cell{% if result_b.profit_cad < 0 %} profit-loss{% endif %}">
+                                {{ pc(result_b.profit_cad / result_b.exchange_rate, result_b.profit_cad, cfg.profit_loss) }}
+                                {% if result_b.order_value_cad > 0 %}
+                                <span class="pct-badge {% if result_b.profit_cad >= 0 %}pct-green{% else %}pct-red{% endif %}">{{ "%.1f"|format(result_b.profit_cad / result_b.order_value_cad * 100) }}%</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+
+                    </tbody>
+                </table>
+            </div>
+
+            {% else %}
+            <div class="results-empty">
+                <div class="results-empty-inner">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:16px;opacity:0.35">
+                        <rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/>
+                    </svg>
+                    <p>Set quantities and click <strong>Simulate Cart(s)</strong><br>to see results here.</p>
+                </div>
+            </div>
+            {% endif %}
+
+        </div><!-- /results-panel -->
+
+    </div><!-- /app-layout -->
 </body>
 </html>
