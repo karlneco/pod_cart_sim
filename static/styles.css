@@ -704,6 +704,32 @@ textarea {
     height: auto;
   }
 
+  /* Header: stack brand above buttons, drop tagline to save room */
+  .site-header-inner {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .subtitle {
+    display: none;
+  }
+
+  .header-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  /* Buttons share the row evenly */
+  .header-btn-secondary,
+  .header-btn-primary {
+    flex: 1;
+    text-align: center;
+    white-space: nowrap;
+  }
+
+  /* App layout: single column */
   .app-layout {
     flex-direction: column;
     height: auto;
@@ -717,7 +743,11 @@ textarea {
     overflow: visible;
   }
 
-  /* Hide Discount B on phone — keep A only */
+  /* Collapse discount grid to one full-width column */
+  .discount-row {
+    grid-template-columns: 1fr;
+  }
+
   .discount-b-col {
     display: none;
   }
@@ -731,8 +761,16 @@ textarea {
     overflow: visible;
   }
 
-  .site-header {
-    text-align: center;
+  /* Hide Discount B column in results — give Model A full width */
+  .results-table th:last-child,
+  .results-table td:last-child {
+    display: none;
+  }
+
+  /* With only 2 columns, give the metric label more breathing room */
+  .results-table th:first-child,
+  .results-table td:first-child {
+    width: 38%;
   }
 
   .card .toolbar,
