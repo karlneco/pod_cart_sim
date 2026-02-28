@@ -16,3 +16,4 @@ services:
     volumes:
       - ./:/app
       - ${HOME}/Documents/kozakura/apps_data/pod_cart_sim:/data
+    restart: unless-stopped
