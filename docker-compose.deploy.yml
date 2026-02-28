@@ -1,5 +1,5 @@
 services:
-  pod-cart-sim:
+  app:
     image: pod-cart-sim:local
     build:
       context: .
