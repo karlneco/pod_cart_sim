@@ -20,10 +20,15 @@ fi
 mkdir -p "${APP_DATA_DIR}"
 
 CURRENT_SERVICE_CID="$(docker compose -p "${PROJECT_NAME}" -f "${COMPOSE_FILE}" ps -q "${SERVICE_NAME}" || true)"
+CURRENT_SERVICE_CID_FULL=""
+if [[ -n "${CURRENT_SERVICE_CID}" ]]; then
+  CURRENT_SERVICE_CID_FULL="$(docker inspect -f '{{.Id}}' "${CURRENT_SERVICE_CID}" 2>/dev/null || true)"
+fi
 mapfile -t PORT_5002_CIDS < <(docker ps --filter "publish=5002" --format '{{.ID}}')
 if (( ${#PORT_5002_CIDS[@]} > 0 )); then
   for CID in "${PORT_5002_CIDS[@]}"; do
-    if [[ -n "${CURRENT_SERVICE_CID}" && "${CID}" == "${CURRENT_SERVICE_CID}" ]]; then
+    CID_FULL="$(docker inspect -f '{{.Id}}' "${CID}" 2>/dev/null || true)"
+    if [[ -n "${CURRENT_SERVICE_CID_FULL}" && -n "${CID_FULL}" && "${CID_FULL}" == "${CURRENT_SERVICE_CID_FULL}" ]]; then
       continue
     fi
     echo "Port 5002 is already allocated by another running container:" >&2
