@@ -20,10 +20,10 @@ _DISPLAY_CONFIG_DEFAULTS = {
     "real_shipping_cost":     "SWAP",
     "cogs_tax":               "SWAP",
     "cogs_total":             "SWAP",
-    "store_fees":             "CAD",
-    "store_payout":           "CAD",
-    "total_expenses":         "CAD",
-    "profit_loss":            "CAD",
+    "store_fees":             "SWAP",
+    "store_payout":           "SWAP",
+    "total_expenses":         "SWAP",
+    "profit_loss":            "SWAP",
 }
 
 
@@ -67,6 +67,14 @@ def _display_config_file() -> Path:
     return _product_file().parent / "display_config.json"
 
 
+def _normalize_display_mode(value, default: str) -> str:
+    if isinstance(value, str):
+        normalized = value.strip().upper()
+        if normalized in DISPLAY_MODES:
+            return normalized
+    return default
+
+
 def load_display_config() -> dict:
     """Load display_config.json, seeding it from defaults if absent.
     Unknown keys in the file are ignored; missing keys fall back to defaults.
@@ -80,9 +88,9 @@ def load_display_config() -> dict:
 
     with open(cfg_path, "r") as f:
         raw = json.load(f)
+    raw = raw if isinstance(raw, dict) else {}
 
     result = dict(_DISPLAY_CONFIG_DEFAULTS)
     for key, default in _DISPLAY_CONFIG_DEFAULTS.items():
-        value = raw.get(key, default)
-        result[key] = value if value in DISPLAY_MODES else default
+        result[key] = _normalize_display_mode(raw.get(key), default)
     return result
